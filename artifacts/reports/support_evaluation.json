@@ -1,0 +1,222 @@
+{
+  "input_path": "artifacts\\datasets\\support_chats.jsonl",
+  "output_path": "artifacts\\reports\\support_evaluation.json",
+  "model": "gemma-3-27b-it",
+  "total_conversations": 20,
+  "average_quality_score": 2.9,
+  "distribution_by_intent": {
+    "payment_issue": 4,
+    "technical_error": 4,
+    "account_access": 4,
+    "plan_question": 4,
+    "refund_request": 4,
+    "other": 0
+  },
+  "distribution_by_satisfaction": {
+    "satisfied": 5,
+    "neutral": 2,
+    "unsatisfied": 13
+  },
+  "distribution_by_quality_score": {
+    "1": 0,
+    "2": 12,
+    "3": 3,
+    "4": 0,
+    "5": 5
+  },
+  "distribution_by_agent_mistake": {
+    "ignored_question": 4,
+    "incorrect_info": 7,
+    "rude_tone": 4,
+    "no_resolution": 15,
+    "unnecessary_escalation": 1
+  },
+  "records": [
+    {
+      "conversation_id": "chat_0042_001",
+      "intent": "refund_request",
+      "satisfaction": "neutral",
+      "quality_score": 3,
+      "agent_mistakes": [
+        "incorrect_info",
+        "no_resolution"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_002",
+      "intent": "technical_error",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "incorrect_info"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_003",
+      "intent": "plan_question",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "ignored_question",
+        "no_resolution",
+        "unnecessary_escalation"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_004",
+      "intent": "technical_error",
+      "satisfaction": "satisfied",
+      "quality_score": 5,
+      "agent_mistakes": []
+    },
+    {
+      "conversation_id": "chat_0042_005",
+      "intent": "account_access",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "incorrect_info"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_006",
+      "intent": "plan_question",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "ignored_question"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_007",
+      "intent": "plan_question",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "incorrect_info",
+        "no_resolution",
+        "ignored_question"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_008",
+      "intent": "refund_request",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "rude_tone",
+        "no_resolution"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_009",
+      "intent": "technical_error",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "rude_tone"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_010",
+      "intent": "plan_question",
+      "satisfaction": "satisfied",
+      "quality_score": 5,
+      "agent_mistakes": []
+    },
+    {
+      "conversation_id": "chat_0042_011",
+      "intent": "refund_request",
+      "satisfaction": "neutral",
+      "quality_score": 3,
+      "agent_mistakes": [
+        "no_resolution"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_012",
+      "intent": "account_access",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "rude_tone"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_013",
+      "intent": "payment_issue",
+      "satisfaction": "unsatisfied",
+      "quality_score": 3,
+      "agent_mistakes": [
+        "no_resolution",
+        "incorrect_info"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_014",
+      "intent": "account_access",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "incorrect_info"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_015",
+      "intent": "payment_issue",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "rude_tone"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_016",
+      "intent": "refund_request",
+      "satisfaction": "satisfied",
+      "quality_score": 5,
+      "agent_mistakes": []
+    },
+    {
+      "conversation_id": "chat_0042_017",
+      "intent": "technical_error",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "no_resolution",
+        "ignored_question"
+      ]
+    },
+    {
+      "conversation_id": "chat_0042_018",
+      "intent": "account_access",
+      "satisfaction": "satisfied",
+      "quality_score": 5,
+      "agent_mistakes": []
+    },
+    {
+      "conversation_id": "chat_0042_019",
+      "intent": "payment_issue",
+      "satisfaction": "satisfied",
+      "quality_score": 5,
+      "agent_mistakes": []
+    },
+    {
+      "conversation_id": "chat_0042_020",
+      "intent": "payment_issue",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": [
+        "incorrect_info",
+        "no_resolution"
+      ]
+    }
+  ]
+}

@@ -47,6 +47,14 @@ class AppSettings(BaseSettings):
         default=60.0,
         validation_alias=AliasChoices("LLM_RETRY_MAX_DELAY_SECONDS", "GEMINI_RETRY_MAX_DELAY_SECONDS"),
     )
+    llm_min_request_interval_seconds: float | None = Field(
+        default=None,
+        validation_alias="LLM_MIN_REQUEST_INTERVAL_SECONDS",
+    )
+    llm_fail_fast_on_quota_exhaustion: bool = Field(
+        default=True,
+        validation_alias="LLM_FAIL_FAST_ON_QUOTA_EXHAUSTION",
+    )
     cache_dir: Path = Path(".cache/support-analytics")
     artifacts_dir: Path = Path("artifacts")
 

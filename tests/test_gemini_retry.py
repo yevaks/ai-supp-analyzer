@@ -33,6 +33,7 @@ def test_generate_content_retries_after_rate_limit(monkeypatch) -> None:
         llm_max_retries=3,
         llm_retry_base_delay_seconds=0.01,
         llm_retry_max_delay_seconds=0.01,
+        llm_min_request_interval_seconds=0,
         _env_file=None,
     )
     fake_models = FakeModels(failures_before_success=2, response={"ok": True})

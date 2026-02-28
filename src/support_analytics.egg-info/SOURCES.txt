@@ -23,6 +23,7 @@ src/support_analytics/domain/scoring.py
 src/support_analytics/infrastructure/__init__.py
 src/support_analytics/infrastructure/gemini_client.py
 src/support_analytics/infrastructure/jsonl_repository.py
+src/support_analytics/infrastructure/llm_factory.py
 src/support_analytics/infrastructure/replay_cache.py
 src/support_analytics/interfaces/__init__.py
 src/support_analytics/interfaces/cli.py
@@ -32,5 +33,8 @@ tests/test_gemini_payload_repair.py
 tests/test_gemini_retry.py
 tests/test_gemini_schema.py
 tests/test_generation_resume.py
+tests/test_google_genai_fallback.py
+tests/test_llm_config.py
+tests/test_llm_factory.py
 tests/test_scenario_factory.py
 tests/test_scoring.py

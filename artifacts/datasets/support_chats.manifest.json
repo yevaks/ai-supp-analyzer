@@ -1,0 +1,22 @@
+{
+  "total_conversations": 20,
+  "seed": 42,
+  "language": "uk",
+  "model": "gemma-3-27b-it",
+  "output_path": "artifacts\\datasets\\support_chats.jsonl",
+  "distribution_by_issue": {
+    "refund_request": 4,
+    "technical_error": 4,
+    "plan_question": 4,
+    "account_access": 4,
+    "payment_issue": 4
+  },
+  "distribution_by_case_class": {
+    "agent_mistake": 5,
+    "problematic": 5,
+    "conflict": 5,
+    "successful": 5
+  },
+  "hidden_dissatisfaction_cases": 5,
+  "agent_error_cases": 15
+}

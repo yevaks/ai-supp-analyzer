@@ -99,6 +99,7 @@ class GoogleGenAIStructuredClient(StructuredLLM):
     def __init__(self, settings: AppSettings) -> None:
         self._settings = settings
         self._client = genai.Client(api_key=settings.require_api_key())
+        self._next_request_not_before_by_model: dict[str, float] = {}
 
     def generate_structured(
         self,
@@ -178,6 +179,7 @@ class GoogleGenAIStructuredClient(StructuredLLM):
 
         for attempt in range(attempts):
             try:
+                self._wait_for_request_slot(model)
                 return self._client.models.generate_content(
                     model=model,
                     contents=prompt,
@@ -197,7 +199,7 @@ class GoogleGenAIStructuredClient(StructuredLLM):
                 last_error = error
                 if not self._should_retry(error=error, attempt=attempt):
                     raise
-                time.sleep(self._retry_delay_seconds(attempt))
+                time.sleep(self._retry_delay_seconds(attempt, error=error))
 
         if last_error is not None:
             raise last_error
@@ -215,6 +217,7 @@ class GoogleGenAIStructuredClient(StructuredLLM):
 
         for attempt in range(attempts):
             try:
+                self._wait_for_request_slot(model)
                 return self._client.models.generate_content(
                     model=model,
                     contents=prompt,
@@ -231,7 +234,7 @@ class GoogleGenAIStructuredClient(StructuredLLM):
                 last_error = error
                 if not self._should_retry(error=error, attempt=attempt):
                     raise
-                time.sleep(self._retry_delay_seconds(attempt))
+                time.sleep(self._retry_delay_seconds(attempt, error=error))
 
         if last_error is not None:
             raise last_error
@@ -241,12 +244,95 @@ class GoogleGenAIStructuredClient(StructuredLLM):
         status_code = getattr(error, "code", None)
         if status_code != 429:
             return False
+        if self._settings.llm_fail_fast_on_quota_exhaustion and self._is_non_transient_quota_error(error):
+            return False
         return attempt < self._settings.llm_max_retries
 
-    def _retry_delay_seconds(self, attempt: int) -> float:
+    def _retry_delay_seconds(self, attempt: int, *, error: ClientError | None = None) -> float:
         base_delay = self._settings.llm_retry_base_delay_seconds
         max_delay = self._settings.llm_retry_max_delay_seconds
-        return min(base_delay * (2**attempt), max_delay)
+        default_delay = min(base_delay * (2**attempt), max_delay)
+        suggested_delay = self._extract_retry_delay_seconds(error) if error is not None else None
+        if suggested_delay is None:
+            return default_delay
+        return min(max(default_delay, suggested_delay), max_delay)
+
+    def _wait_for_request_slot(self, model: str) -> None:
+        min_interval = self._minimum_request_interval_seconds_for_model(model)
+        if min_interval <= 0:
+            return
+
+        now = time.monotonic()
+        next_request_not_before = self._next_request_not_before_by_model.get(model, 0.0)
+        if next_request_not_before > now:
+            time.sleep(next_request_not_before - now)
+            now = time.monotonic()
+        self._next_request_not_before_by_model[model] = now + min_interval
+
+    def _minimum_request_interval_seconds_for_model(self, model: str) -> float:
+        if self._settings.llm_min_request_interval_seconds is not None:
+            return max(0.0, self._settings.llm_min_request_interval_seconds)
+
+        normalized_model = model.strip().lower()
+        if "gemma" in normalized_model:
+            return 2.1
+        if "2.5" in normalized_model and "flash-lite" in normalized_model:
+            return 4.1
+        if "2.5" in normalized_model and "flash" in normalized_model:
+            return 6.1
+        if "2.5" in normalized_model and "pro" in normalized_model:
+            return 12.1
+        if "2.0" in normalized_model and "flash-lite" in normalized_model:
+            return 2.1
+        if "2.0" in normalized_model and "flash" in normalized_model:
+            return 4.1
+        return 0.0
+
+    def _extract_retry_delay_seconds(self, error: ClientError) -> float | None:
+        details = getattr(error, "details", None)
+        for retry_delay in self._find_retry_delay_values(details):
+            parsed_retry_delay = self._parse_retry_delay_seconds(retry_delay)
+            if parsed_retry_delay is not None:
+                return parsed_retry_delay
+        return None
+
+    def _find_retry_delay_values(self, node: Any) -> list[Any]:
+        found: list[Any] = []
+        if isinstance(node, dict):
+            for key, value in node.items():
+                if key in {"retryDelay", "retry_delay"}:
+                    found.append(value)
+                found.extend(self._find_retry_delay_values(value))
+        elif isinstance(node, list):
+            for item in node:
+                found.extend(self._find_retry_delay_values(item))
+        return found
+
+    def _parse_retry_delay_seconds(self, value: Any) -> float | None:
+        if isinstance(value, (int, float)):
+            return max(0.0, float(value))
+        if isinstance(value, str):
+            match = re.fullmatch(r"\s*(\d+(?:\.\d+)?)s\s*", value)
+            if match:
+                return max(0.0, float(match.group(1)))
+            try:
+                return max(0.0, float(value))
+            except ValueError:
+                return None
+        return None
+
+    def _is_non_transient_quota_error(self, error: ClientError) -> bool:
+        lowered_message = str(getattr(error, "message", "") or str(error)).lower()
+        quota_markers = (
+            "per day",
+            "daily",
+            "quota",
+            "billing",
+            "limit 'generatecontentrequestsperday",
+            "limit 'generatetokensperday",
+            "free_tier",
+        )
+        return any(marker in lowered_message for marker in quota_markers)
 
     def _should_fallback_to_prompt_json(self, error: ClientError) -> bool:
         status_code = getattr(error, "code", None)
@@ -320,6 +406,13 @@ Return only valid JSON that matches this schema exactly:
             )
 
         if status_code == 429:
+            if self._settings.llm_fail_fast_on_quota_exhaustion and self._is_non_transient_quota_error(error):
+                return RuntimeError(
+                    "Google GenAI quota appears to be exhausted for the selected model. Waiting through retries "
+                    "is unlikely to help. Try a lower-volume model, reduce dataset size, wait for quota reset, "
+                    "or adjust `LLM_MIN_REQUEST_INTERVAL_SECONDS` / your Google plan. "
+                    "For long runs, restart with `--resume-from-cache`."
+                )
             return RuntimeError(
                 "Google GenAI rate limit was hit repeatedly. Wait a bit, reduce request volume, "
                 "or increase retry settings. For long runs, restart with `--resume-from-cache` "

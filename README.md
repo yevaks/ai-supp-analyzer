@@ -90,10 +90,34 @@ python -m pip install -e .
 - `GOOGLE_API_KEY`
 - `LLM_API_KEY`
 - `GEMINI_API_KEY`
+- `LLM_MAX_RETRIES`
+- `LLM_RETRY_BASE_DELAY_SECONDS`
+- `LLM_RETRY_MAX_DELAY_SECONDS`
+- `LLM_MIN_REQUEST_INTERVAL_SECONDS`
+- `LLM_FAIL_FAST_ON_QUOTA_EXHAUSTION`
 
 Якщо заданий `LLM_MODEL`, він використовується і для generation, і для evaluation.
 
 Якщо задані `GENERATION_MODEL` або `EVALUATION_MODEL`, вони мають пріоритет над `LLM_MODEL`.
+
+## Rate Limits
+
+Google GenAI може жорстко обмежувати частоту запитів залежно від моделі та тарифу. Тому в проєкті є два механізми:
+
+- `request pacing`: невелика пауза між запитами, щоб не впиратися в RPM-ліміт одразу після першого успішного кейсу
+- `fail fast on quota exhaustion`: якщо помилка схожа на денну або billing/quota-проблему, клієнт не витрачає 6+ хвилин на беззмістовні ретраї
+
+Практичний стартовий конфіг:
+
+```env
+LLM_MAX_RETRIES=10
+LLM_RETRY_BASE_DELAY_SECONDS=3
+LLM_RETRY_MAX_DELAY_SECONDS=60
+LLM_MIN_REQUEST_INTERVAL_SECONDS=4.1
+LLM_FAIL_FAST_ON_QUOTA_EXHAUSTION=true
+```
+
+Якщо бачиш, що модель все одно часто дає `429`, збільш `LLM_MIN_REQUEST_INTERVAL_SECONDS`, наприклад до `6` або `8`.
 
 ## Запуск
 
