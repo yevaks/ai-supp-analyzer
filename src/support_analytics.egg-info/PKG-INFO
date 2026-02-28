@@ -1,0 +1,250 @@
+Metadata-Version: 2.4
+Name: support-analytics
+Version: 0.1.0
+Summary: Synthetic support chat generation and QA evaluation toolkit powered by Gemini.
+Requires-Python: >=3.12
+Description-Content-Type: text/markdown
+Requires-Dist: google-genai<2,>=1.63.0
+Requires-Dist: pydantic<3,>=2.11.0
+Requires-Dist: pydantic-settings<3,>=2.10.0
+Requires-Dist: typer<1,>=0.16.0
+
+# Support Analytics
+
+Інструмент генерує синтетичний датасет чатів між клієнтом та support-агентом і оцінює якість роботи підтримки за допомогою Gemini.
+
+Рішення побудоване як гібридна система:
+
+- `Dataset generation`: детермінований planner будує матрицю сценаріїв, після чого Gemini створює реалістичні діалоги через structured output.
+- `Support evaluation`: Gemini виступає як LLM-judge для класифікації теми, реального рівня задоволеності клієнта, прихованої незадоволеності та якості відповіді агента.
+- `Support evaluation`: Gemini виступає як LLM-judge і повертає компактний JSON-контракт для кожного діалогу: `intent`, `satisfaction`, `quality_score`, `agent_mistakes`.
+- `Determinism`: система використовує фіксований `seed` і локальний replay-cache. Це дає відтворювані результати при повторних запусках з однаковою конфігурацією.
+
+## Що покриває датасет
+
+Генератор обов'язково включає:
+
+- проблеми з оплатою
+- технічні помилки
+- доступ до акаунту
+- питання по тарифу
+- повернення коштів
+- успішні кейси
+- проблемні кейси
+- конфліктні кейси
+- кейси з помилками агента
+- кейси з прихованою незадоволеністю
+- кейси з тональними та логічними помилками агента
+
+## Архітектура
+
+Проєкт організовано за шарами:
+
+- `domain`: чисті моделі, enum-и, scoring
+- `application`: сценарний planner, генератор, evaluator, prompts, reports
+- `infrastructure`: Gemini adapter, JSON/JSONL persistence, replay cache
+- `interfaces`: CLI
+
+Це дає:
+
+- низьке зв'язування
+- просту заміну LLM-провайдера
+- чисті точки розширення
+- окреме тестування бізнес-логіки без мережі
+
+## Вимоги
+
+- Python `3.12+`
+- Gemini API key у змінній `GEMINI_API_KEY`
+
+## Встановлення
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -e .
+```
+
+Або створіть `.env` на основі `.env.example`.
+
+## Запуск
+
+### 1. Генерація датасету
+
+```bash
+support generate --count 20 --seed 42
+```
+
+Результат:
+
+- `artifacts/datasets/support_chats.jsonl`
+- `artifacts/datasets/support_chats.manifest.json`
+
+Поведінка генератора під час довгих запусків:
+
+- показує прогрес по кожному кейсу
+- інкрементально дописує `JSONL` під час виконання
+- уміє продовжувати роботу з уже записаного output-файлу
+- перевикористовує replay-cache після обриву процесу
+- за замовчуванням не перевикористовує старі output/cache дані без явного прапора
+
+Приклади для resume:
+
+```bash
+support generate --count 40 --seed 42 --resume-from-cache
+support generate --count 40 --seed 42 --start-from 8 --resume-from-cache
+support generate --count 40 --seed 42 --no-resume-from-cache --force-refresh
+```
+
+### 2. Оцінювання якості сапорту
+
+```bash
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42
+```
+
+Результат:
+
+- `artifacts/reports/support_evaluation.json`
+
+Поведінка evaluator-а під час довгих запусків:
+
+- показує прогрес по кожному діалогу
+- інкрементально оновлює output report під час виконання
+- за замовчуванням не перевикористовує старі output/cache дані без явного прапора
+- у resume-режимі може продовжити роботу після rate limit або обриву процесу
+
+Приклади для resume:
+
+```bash
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42 --resume-from-cache
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42 --start-from 10 --resume-from-cache
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42 --no-resume-from-cache --force-refresh
+```
+
+Кожен запис в evaluation report містить:
+
+- `intent`: `payment_issue | technical_error | account_access | plan_question | refund_request | other`
+- `satisfaction`: `satisfied | neutral | unsatisfied`
+- `quality_score`: оцінка роботи агента за шкалою `1..5`
+- `agent_mistakes`: список тегів з фіксованого словника
+
+Список підтримуваних `agent_mistakes`:
+
+- `ignored_question`
+- `incorrect_info`
+- `rude_tone`
+- `no_resolution`
+- `unnecessary_escalation`
+
+## Приклади корисних опцій
+
+```bash
+support generate --count 80 --seed 2026 --model gemini-2.5-flash-lite
+support generate --count 40 --seed 42 --force-refresh
+support generate --count 40 --seed 42 --start-from 12 --resume-from-cache
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --output artifacts/reports/report.json
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --start-from 12 --resume-from-cache
+```
+
+## Формат датасету
+
+Кожен рядок у JSONL містить:
+
+- сам діалог
+- blueprint сценарію
+- ground truth мітки
+- фактичний статус вирішення
+- видимий та реальний рівень задоволеності
+- ознаки прихованої незадоволеності
+- заплановані помилки агента
+
+Це дозволяє не лише аналізувати quality support, але й benchmark-ити сам evaluator.
+
+## Формат evaluation JSON
+
+```json
+{
+  "input_path": "artifacts/datasets/support_chats.jsonl",
+  "output_path": "artifacts/reports/support_evaluation.json",
+  "model": "gemini-2.5-flash-lite",
+  "total_conversations": 20,
+  "average_quality_score": 3.55,
+  "distribution_by_intent": {
+    "payment_issue": 4,
+    "technical_error": 5,
+    "account_access": 4,
+    "plan_question": 3,
+    "refund_request": 2,
+    "other": 2
+  },
+  "distribution_by_satisfaction": {
+    "satisfied": 7,
+    "neutral": 5,
+    "unsatisfied": 8
+  },
+  "distribution_by_quality_score": {
+    "1": 2,
+    "2": 4,
+    "3": 5,
+    "4": 6,
+    "5": 3
+  },
+  "distribution_by_agent_mistake": {
+    "ignored_question": 3,
+    "incorrect_info": 4,
+    "rude_tone": 2,
+    "no_resolution": 6,
+    "unnecessary_escalation": 1
+  },
+  "records": [
+    {
+      "conversation_id": "chat_0042_001",
+      "intent": "account_access",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": ["no_resolution", "incorrect_info"]
+    }
+  ]
+}
+```
+
+## Як забезпечується детермінізм
+
+1. Planner сценаріїв використовує детермінований `Random(seed)`.
+2. Gemini викликається з тим самим `seed`.
+3. Structured output обмежує формат відповіді схемою Pydantic.
+4. Replay-cache зберігає відповідь LLM за хешем `prompt + model + seed + schema`.
+5. Інкрементальна JSONL-запис дозволяє безпечно продовжувати довгі запуски після обриву.
+
+Практика компаній для подібних задач зазвичай саме така: hybrid pipeline, де сценарій і ground truth плануються детерміновано, а LLM відповідає лише за natural language realization та semantic judging.
+
+## Тести
+
+```bash
+pytest
+```
+
+Тести покривають:
+
+- детермінований розподіл сценаріїв
+- наявність hidden dissatisfaction
+- наявність кейсів з agent errors
+- rule-based сигнали і штрафи в scoring
+- retry/backoff для Gemini rate limit
+- resume/start-from для довгих генерацій
+
+## Структура директорій
+
+```text
+src/support_analytics/
+  application/
+  domain/
+  infrastructure/
+  interfaces/
+tests/
+```
+
+## Джерела по Gemini
+
+- Google Gemini API docs: https://ai.google.dev/gemini-api/docs
+- Python SDK: https://googleapis.github.io/python-genai/
+- Structured output: https://ai.google.dev/gemini-api/docs/structured-output

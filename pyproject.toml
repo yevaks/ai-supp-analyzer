@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=80", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "support-analytics"
+version = "0.1.0"
+description = "Synthetic support chat generation and QA evaluation toolkit powered by Google GenAI hosted models."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "google-genai>=1.63.0,<2",
+  "pydantic>=2.11.0,<3",
+  "pydantic-settings>=2.10.0,<3",
+  "typer>=0.16.0,<1",
+]
+
+[project.scripts]
+support = "support_analytics.main:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]

@@ -1,0 +1,281 @@
+# Support Analytics
+
+Інструмент генерує синтетичний датасет чатів між клієнтом та support-агентом і оцінює якість роботи підтримки через Google GenAI API.
+
+Рішення побудоване як гібридна система:
+
+- `Dataset generation`: детермінований planner будує матрицю сценаріїв, після чого вибрана Google-модель створює реалістичні діалоги через structured output.
+- `Support evaluation`: вибрана Google-модель повертає компактний JSON-контракт для кожного діалогу: `intent`, `satisfaction`, `quality_score`, `agent_mistakes`.
+- `Determinism`: система використовує фіксований `seed` і локальний replay-cache. Це дає відтворювані результати при повторних запусках з однаковою конфігурацією.
+
+## Що покриває датасет
+
+Генератор обов'язково включає:
+
+- проблеми з оплатою
+- технічні помилки
+- доступ до акаунту
+- питання по тарифу
+- повернення коштів
+- успішні кейси
+- проблемні кейси
+- конфліктні кейси
+- кейси з помилками агента
+- кейси з прихованою незадоволеністю
+- кейси з тональними та логічними помилками агента
+
+## Архітектура
+
+Проєкт організовано за шарами:
+
+- `domain`: чисті моделі, enum-и, scoring
+- `application`: сценарний planner, генератор, evaluator, prompts, reports
+- `infrastructure`: Google GenAI adapter, LLM factory, JSON/JSONL persistence, replay cache
+- `interfaces`: CLI
+
+Це дає:
+
+- низьке зв'язування
+- вибір різних hosted-моделей без зміни application-логіки
+- чисті точки розширення
+- окреме тестування бізнес-логіки без мережі
+
+## Моделі
+
+Поточна структура підтримує вибір різних Google-hosted моделей без зміни бізнес-логіки.
+
+Практичні варіанти:
+
+- `gemini-2.5-flash-lite` для швидких і дешевших прогонів
+- `gemma-3-27b-it` для переходу на Gemma 3 27B
+
+Найпростіший перехід на Gemma:
+
+```env
+LLM_PROVIDER=google_genai
+GOOGLE_API_KEY=your_google_api_key
+LLM_MODEL=gemma-3-27b-it
+DATASET_LANGUAGE=uk
+```
+
+Якщо хочеш різні моделі для різних задач:
+
+```env
+GENERATION_MODEL=gemini-2.5-flash-lite
+EVALUATION_MODEL=gemma-3-27b-it
+```
+
+## Вимоги
+
+- Python `3.12+`
+- Google API key у змінній `GOOGLE_API_KEY`, `LLM_API_KEY` або `GEMINI_API_KEY`
+
+## Встановлення
+
+```bash
+python -m pip install -r requirements.txt
+python -m pip install -e .
+```
+
+Або створіть `.env` на основі `.env.example`.
+
+## Конфігурація моделей
+
+Підтримуються такі змінні:
+
+- `LLM_PROVIDER`
+- `LLM_MODEL`
+- `GENERATION_MODEL`
+- `EVALUATION_MODEL`
+- `GOOGLE_API_KEY`
+- `LLM_API_KEY`
+- `GEMINI_API_KEY`
+
+Якщо заданий `LLM_MODEL`, він використовується і для generation, і для evaluation.
+
+Якщо задані `GENERATION_MODEL` або `EVALUATION_MODEL`, вони мають пріоритет над `LLM_MODEL`.
+
+## Запуск
+
+### 1. Генерація датасету
+
+```bash
+support generate --count 20 --seed 42
+```
+
+Результат:
+
+- `artifacts/datasets/support_chats.jsonl`
+- `artifacts/datasets/support_chats.manifest.json`
+
+Поведінка генератора під час довгих запусків:
+
+- показує прогрес по кожному кейсу
+- інкрементально дописує `JSONL` під час виконання
+- уміє продовжувати роботу з уже записаного output-файлу
+- перевикористовує replay-cache після обриву процесу
+- за замовчуванням не перевикористовує старі output/cache дані без явного прапора
+
+Приклади для resume:
+
+```bash
+support generate --count 40 --seed 42 --resume-from-cache
+support generate --count 40 --seed 42 --start-from 8 --resume-from-cache
+support generate --count 40 --seed 42 --no-resume-from-cache --force-refresh
+```
+
+### 2. Оцінювання якості сапорту
+
+```bash
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42
+```
+
+Результат:
+
+- `artifacts/reports/support_evaluation.json`
+
+Поведінка evaluator-а під час довгих запусків:
+
+- показує прогрес по кожному діалогу
+- інкрементально оновлює output report під час виконання
+- за замовчуванням не перевикористовує старі output/cache дані без явного прапора
+- у resume-режимі може продовжити роботу після rate limit або обриву процесу
+
+Приклади для resume:
+
+```bash
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42 --resume-from-cache
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42 --start-from 10 --resume-from-cache
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --seed 42 --no-resume-from-cache --force-refresh
+```
+
+Кожен запис в evaluation report містить:
+
+- `intent`: `payment_issue | technical_error | account_access | plan_question | refund_request | other`
+- `satisfaction`: `satisfied | neutral | unsatisfied`
+- `quality_score`: оцінка роботи агента за шкалою `1..5`
+- `agent_mistakes`: список тегів з фіксованого словника
+
+Список підтримуваних `agent_mistakes`:
+
+- `ignored_question`
+- `incorrect_info`
+- `rude_tone`
+- `no_resolution`
+- `unnecessary_escalation`
+
+## Приклади корисних опцій
+
+```bash
+support generate --count 80 --seed 2026 --model gemma-3-27b-it
+support generate --count 40 --seed 42 --force-refresh
+support generate --count 40 --seed 42 --start-from 12 --resume-from-cache
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --output artifacts/reports/report.json
+support evaluate --input-path artifacts/datasets/support_chats.jsonl --start-from 12 --resume-from-cache
+```
+
+## Формат датасету
+
+Кожен рядок у JSONL містить:
+
+- сам діалог
+- blueprint сценарію
+- ground truth мітки
+- фактичний статус вирішення
+- видимий та реальний рівень задоволеності
+- ознаки прихованої незадоволеності
+- заплановані помилки агента
+
+Це дозволяє не лише аналізувати quality support, але й benchmark-ити сам evaluator.
+
+## Формат evaluation JSON
+
+```json
+{
+  "input_path": "artifacts/datasets/support_chats.jsonl",
+  "output_path": "artifacts/reports/support_evaluation.json",
+  "model": "gemma-3-27b-it",
+  "total_conversations": 20,
+  "average_quality_score": 3.55,
+  "distribution_by_intent": {
+    "payment_issue": 4,
+    "technical_error": 5,
+    "account_access": 4,
+    "plan_question": 3,
+    "refund_request": 2,
+    "other": 2
+  },
+  "distribution_by_satisfaction": {
+    "satisfied": 7,
+    "neutral": 5,
+    "unsatisfied": 8
+  },
+  "distribution_by_quality_score": {
+    "1": 2,
+    "2": 4,
+    "3": 5,
+    "4": 6,
+    "5": 3
+  },
+  "distribution_by_agent_mistake": {
+    "ignored_question": 3,
+    "incorrect_info": 4,
+    "rude_tone": 2,
+    "no_resolution": 6,
+    "unnecessary_escalation": 1
+  },
+  "records": [
+    {
+      "conversation_id": "chat_0042_001",
+      "intent": "account_access",
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
+      "agent_mistakes": ["no_resolution", "incorrect_info"]
+    }
+  ]
+}
+```
+
+## Як забезпечується детермінізм
+
+1. Planner сценаріїв використовує детермінований `Random(seed)`.
+2. Обрана Google-модель викликається з тим самим `seed`.
+3. Structured output обмежує формат відповіді схемою Pydantic.
+4. Replay-cache зберігає відповідь LLM за хешем `prompt + model + seed + schema`.
+5. Інкрементальна JSONL-запис дозволяє безпечно продовжувати довгі запуски після обриву.
+
+Практика компаній для подібних задач зазвичай саме така: hybrid pipeline, де сценарій і ground truth плануються детерміновано, а LLM відповідає лише за natural language realization та semantic judging.
+
+## Тести
+
+```bash
+pytest
+```
+
+Тести покривають:
+
+- детермінований розподіл сценаріїв
+- наявність hidden dissatisfaction
+- наявність кейсів з agent errors
+- rule-based сигнали і штрафи в scoring
+- retry/backoff для Google GenAI rate limit
+- resume/start-from для довгих генерацій
+- generic model selection і fallback для моделей з різними capability-профілями
+
+## Структура директорій
+
+```text
+src/support_analytics/
+  application/
+  domain/
+  infrastructure/
+  interfaces/
+tests/
+```
+
+## Джерела
+
+- Google Gemini API docs: https://ai.google.dev/gemini-api/docs
+- Python SDK: https://googleapis.github.io/python-genai/
+- Structured output: https://ai.google.dev/gemini-api/docs/structured-output
+- Run Gemma with Gemini API: https://ai.google.dev/gemma/docs/core/api/gemini
