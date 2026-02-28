@@ -3,10 +3,9 @@ import argparse
 import json
 import google.genai as genai
 from dotenv import load_dotenv
-
+from scenarios import SCENARIOS
 from prompts import build_generation_prompt
-from utils import save_json
-
+from utils import save_json, pick_scenario
 
 load_dotenv()
 

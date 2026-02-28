@@ -1,0 +1,51 @@
+SCENARIOS = {
+    "payment_issues": {
+        "charge_not_activated": "Кошти списані, але послуга не активувалась",
+        "early_charge": "Списання відбулося раніше очікуваної дати",
+        "unexpected_trial_charge": "Списання після завершення trial без попередження",
+        "currency_mismatch": "Списання в іншій валюті",
+        "double_charge_same_order": "Подвійне списання за один order_id",
+        "pending_and_posted": "Подвійна авторизація (pending + фактичне списання)",
+        "payment_failed": "Payment failed без пояснення",
+        "apple_pay_error": "Помилка при оплаті через Apple Pay",
+        "insufficient_funds": "Відхилена картка через insufficient funds",
+        "invoice_missing": "Не прийшов чек або інвойс на email",
+        "invoice_correction": "Невірні реквізити в інвойсі",
+    },
+
+    "technical_issues": {
+        "app_crash_on_launch": "Застосунок вилітає при запуску",
+        "crash_after_login": "Краш після логіну",
+        "error_500": "Error 500 при збереженні",
+        "server_error_payment": "Internal server error під час оплати",
+        "search_not_working": "Не працює пошук",
+        "file_upload_fail": "Неможливо завантажити файл",
+        "bug_after_update": "Баг після оновлення застосунку",
+        "data_missing_after_update": "Після апдейту зникли дані",
+        "slow_loading": "Повільне завантаження сторінок",
+        "sync_delay": "Затримка синхронізації",
+    },
+
+    "account_access": {
+        "forgot_password": "Забутий пароль",
+        "reset_link_expired": "Прострочений reset-лінк",
+        "2fa_code_not_received": "Не приходить код 2FA",
+        "lost_2fa_device": "Втрачено пристрій для 2FA",
+        "account_locked": "Акаунт заблоковано через підозрілу активність",
+        "too_many_attempts": "Too many login attempts",
+        "suspicious_login": "Підозрілий вхід з іншої країни",
+        "email_change_issue": "Проблема зі зміною email",
+    },
+
+    "plan_and_refund": {
+        "upgrade_mid_cycle": "Апгрейд тарифу посеред розрахункового періоду",
+        "upgrade_not_applied": "Апгрейд не активувався",
+        "downgrade_immediate": "Даунгрейд вступив в силу одразу",
+        "feature_lost_after_downgrade": "Втрачено функції після даунгрейду",
+        "trial_auto_charge": "Trial автоматично списав кошти",
+        "trial_not_activated": "Trial не активувався",
+        "refund_within_policy": "Повернення коштів протягом 14 днів",
+        "partial_refund": "Частковий refund",
+        "refund_denied": "Відмова у поверненні",
+    },
+}
