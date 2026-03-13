@@ -34,6 +34,7 @@ tests/test_gemini_retry.py
 tests/test_gemini_schema.py
 tests/test_generation_resume.py
 tests/test_google_genai_fallback.py
+tests/test_google_genai_rate_limits.py
 tests/test_llm_config.py
 tests/test_llm_factory.py
 tests/test_scenario_factory.py

@@ -3,43 +3,43 @@
   "output_path": "artifacts\\reports\\support_evaluation.json",
   "model": "gemma-3-27b-it",
   "total_conversations": 20,
-  "average_quality_score": 2.9,
+  "average_quality_score": 2.85,
   "distribution_by_intent": {
     "payment_issue": 4,
     "technical_error": 4,
     "account_access": 4,
-    "plan_question": 4,
-    "refund_request": 4,
+    "plan_question": 5,
+    "refund_request": 3,
     "other": 0
   },
   "distribution_by_satisfaction": {
     "satisfied": 5,
-    "neutral": 2,
-    "unsatisfied": 13
+    "neutral": 4,
+    "unsatisfied": 11
   },
   "distribution_by_quality_score": {
     "1": 0,
-    "2": 12,
-    "3": 3,
+    "2": 13,
+    "3": 2,
     "4": 0,
     "5": 5
   },
   "distribution_by_agent_mistake": {
     "ignored_question": 4,
-    "incorrect_info": 7,
+    "incorrect_info": 8,
     "rude_tone": 4,
     "no_resolution": 15,
-    "unnecessary_escalation": 1
+    "unnecessary_escalation": 2
   },
   "records": [
     {
       "conversation_id": "chat_0042_001",
       "intent": "refund_request",
-      "satisfaction": "neutral",
-      "quality_score": 3,
+      "satisfaction": "unsatisfied",
+      "quality_score": 2,
       "agent_mistakes": [
-        "incorrect_info",
-        "no_resolution"
+        "no_resolution",
+        "incorrect_info"
       ]
     },
     {
@@ -73,7 +73,7 @@
     {
       "conversation_id": "chat_0042_005",
       "intent": "account_access",
-      "satisfaction": "unsatisfied",
+      "satisfaction": "neutral",
       "quality_score": 2,
       "agent_mistakes": [
         "no_resolution",
@@ -83,11 +83,11 @@
     {
       "conversation_id": "chat_0042_006",
       "intent": "plan_question",
-      "satisfaction": "unsatisfied",
+      "satisfaction": "neutral",
       "quality_score": 2,
       "agent_mistakes": [
-        "no_resolution",
-        "ignored_question"
+        "ignored_question",
+        "no_resolution"
       ]
     },
     {
@@ -117,8 +117,9 @@
       "satisfaction": "unsatisfied",
       "quality_score": 2,
       "agent_mistakes": [
+        "rude_tone",
         "no_resolution",
-        "rude_tone"
+        "unnecessary_escalation"
       ]
     },
     {
@@ -150,11 +151,11 @@
     {
       "conversation_id": "chat_0042_013",
       "intent": "payment_issue",
-      "satisfaction": "unsatisfied",
+      "satisfaction": "neutral",
       "quality_score": 3,
       "agent_mistakes": [
         "no_resolution",
-        "incorrect_info"
+        "ignored_question"
       ]
     },
     {
@@ -173,13 +174,14 @@
       "satisfaction": "unsatisfied",
       "quality_score": 2,
       "agent_mistakes": [
-        "no_resolution",
-        "rude_tone"
+        "incorrect_info",
+        "rude_tone",
+        "no_resolution"
       ]
     },
     {
       "conversation_id": "chat_0042_016",
-      "intent": "refund_request",
+      "intent": "plan_question",
       "satisfaction": "satisfied",
       "quality_score": 5,
       "agent_mistakes": []
@@ -191,7 +193,7 @@
       "quality_score": 2,
       "agent_mistakes": [
         "no_resolution",
-        "ignored_question"
+        "incorrect_info"
       ]
     },
     {
